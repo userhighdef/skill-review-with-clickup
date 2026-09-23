@@ -13,6 +13,21 @@ requirement with the user, and only then looks at the diff.
 The order matters. The acceptance criteria are fixed **before** anyone reads the diff, so
 the review measures the code against the requirement and not the other way round.
 
+## Language
+
+Talk to the user in Thai. This covers every question, every `AskUserQuestion` (the
+question, the header, and each option's label and description), every status update, and
+the report in Step 7. It still applies while a skill this one invokes, such as
+`mattpocock-skills:grilling` or `code-review`, is running. If the user asks for another
+language, switch.
+
+Do not translate code, file paths, commands, tool and API names, error messages, task IDs,
+AC IDs or `file:line` evidence. Keep common tech words such as PR, commit, branch, diff and
+acceptance criteria in English, the way Thai developers say them.
+
+The spec file in Step 4 and the PR comment in Step 7 use Thai too, so they match what the
+user already saw in chat.
+
 ## Input
 
 The user passes one of these. Nothing else is needed.
@@ -40,9 +55,9 @@ ask the user for the ClickUp task. Say which task you found and where you found 
 Ask before doing any work, with a single `AskUserQuestion`:
 
 - Show in chat only
-- Show in chat and comment on the PR
+- Show in chat and post a review on the PR, with inline comments
 
-Remember the answer. It decides what step 7 does.
+Remember the answer. It decides whether Step 8 runs.
 
 ## Step 1 — Read the ClickUp card in full
 
@@ -133,7 +148,7 @@ the base will be empty or misleading. Then check that
 which fixed point you picked, and let the user confirm. Reviewing the wrong range wastes
 every step after it.
 
-If the user chose "comment on the PR" but there is no PR, tell them now that the result
+If the user chose "post a review on the PR" but there is no PR, tell them now that the result
 will stay in chat.
 
 ## Step 3 — Read the code the card touches, not the diff
@@ -201,7 +216,7 @@ tells it how to fetch an issue, and this skill already passes the spec directly.
 
 Invoke the built-in `code-review` skill. Pass the PR number as the target if there is a
 PR, otherwise the head branch. Never pass `--comment`: it posts to the PR right away,
-before the user has seen the findings. Step 7 posts one comment after the user approves.
+before the user has seen the findings. Step 8 posts one review after the user approves.
 
 Check that it reviewed the same commit range as Step 5. If it did not, say so in the
 report instead of mixing results from two different diffs.
@@ -218,7 +233,73 @@ Show the result in chat in this order:
 3. **Bugs** — the findings from Step 6.
 4. One line: how many ACs are met, and the worst issue in each section.
 
-If the user chose "comment on the PR" and a PR exists, draft one PR comment with all four
-sections. Start it with a link to the card, `[<customTaskId>](<task url>)`. Show the
-draft, and post it with `gh pr comment <number> --repo <owner>/<repo> --body-file <file>`
-only after the user says yes.
+## Step 8 — Post the review on the PR
+
+Only if the user chose "post a review on the PR" and a PR exists.
+
+Post everything as **one** PR review, with each finding as an inline comment on its line.
+One review sends one notification and can be read as a whole; many separate comments
+cannot.
+
+### Build the inline comments
+
+Take every finding from Steps 5 and 6 that has a `file:line`: bugs, `❌ not met` and
+wrong ACs, scope creep, and standards issues. When two reviews found the same problem on
+the same line, keep one comment. Each comment body is one short block:
+
+```
+**[Bug]** 🔴 <problem>. <fix>.
+**[Spec AC2]** ❌ <what the AC asked for, and what the code does instead>.
+**[Standards]** 🔵 <rule or smell>. <fix>.
+```
+
+GitHub accepts an inline comment only on a line that is part of the PR diff. Check each
+one against `gh pr diff <number> --repo <owner>/<repo>` (GitHub's own diff, not the local
+one):
+
+- An added or context line: `side: "RIGHT"`, `line` is its number in the new file.
+- A deleted line: `side: "LEFT"`, `line` is its number in the old file.
+- A range: add `start_line` (and `start_side`), with both ends in the same hunk.
+- A line outside every hunk cannot take an inline comment. Move it to the review body
+  under "Findings outside the diff", with its `file:line`.
+
+Line numbers come from the local branch, so they are only valid if the local head is the
+PR head. Compare `git -C <repo> rev-parse HEAD` with
+`gh pr view <number> --repo <owner>/<repo> --json headRefOid -q .headRefOid`. If they
+differ, stop and tell the user — the comments would land on the wrong lines.
+
+### Build the review body
+
+Keep the body short, since the detail lives in the inline comments:
+
+1. A link to the card: `[<customTaskId>](<task url>)`.
+2. The acceptance criteria table from Step 7, section 1.
+3. "Findings outside the diff", if there are any.
+4. The one-line summary from Step 7, section 4.
+
+### Show the draft, then post
+
+Show the user the body and the list of inline comments (`path:line` and the text). Post
+only after the user says yes. Write the payload to a JSON file in the scratchpad:
+
+```json
+{
+  "commit_id": "<headRefOid>",
+  "event": "COMMENT",
+  "body": "<review body>",
+  "comments": [
+    { "path": "src/foo.ts", "line": 42, "side": "RIGHT", "body": "**[Bug]** 🔴 ..." }
+  ]
+}
+```
+
+```
+gh api --method POST repos/<owner>/<repo>/pulls/<number>/reviews --input <file>
+```
+
+Always use `"event": "COMMENT"`. Do not use `APPROVE` or `REQUEST_CHANGES` unless the user
+asks — that is the user's call, and GitHub rejects both on your own PR anyway.
+
+A review is posted all at once or not at all. If GitHub answers `422`, usually one
+comment is on a line outside the diff: move that comment to the body, show the user what
+moved, and post again. Report the review's `html_url` from the response.

@@ -22,7 +22,7 @@ A PR is enough. The skill finds the ClickUp card from the PR body, the branch na
 
 ## Flow
 
-0. Ask where the result goes: chat only, or chat and a PR comment.
+0. Ask where the result goes: chat only, or chat and a review on the PR.
 1. Read the ClickUp card in full, and rename the session to `Review ABC-123 <task name>`.
 2. Find the repo, the PR and the diff range, and confirm them with you.
 3. Read the existing code on the base branch — not the diff.
@@ -30,7 +30,10 @@ A PR is enough. The skill finds the ClickUp card from the PR body, the branch na
    acceptance criteria to a spec file.
 5. Standards and spec review (`mattpocock-skills:code-review`).
 6. Bug review (the built-in `code-review` skill).
-7. Report. A PR comment is posted only after you approve the draft.
+7. Report in chat.
+8. Post one PR review, with each finding as an inline comment on its line. Findings on
+   lines outside the diff go in the review body. Nothing is posted until you approve the
+   draft.
 
 ## Requirements
 
