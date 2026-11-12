@@ -183,7 +183,7 @@ session's scratchpad directory (or a `mktemp -d` directory if there is none), na
 <ClickUp task url>
 
 ## Acceptance criteria
-- AC1: <one testable statement>
+- AC1: <one testable statement> (source: card description / subtask <ID> / comment by <name> / grilling)
 - AC2: ...
 
 ## Out of scope
@@ -195,6 +195,9 @@ session's scratchpad directory (or a `mktemp -d` directory if there is none), na
 
 Show the file path and the acceptance criteria to the user. This file is the spec for the
 next step.
+
+The AC list and the spec file stay between you and the user. They are never posted, so
+anything posted in Step 8 must make sense without them.
 
 ## Step 5 — Standards and spec review
 
@@ -249,9 +252,21 @@ the same line, keep one comment. Each comment body is one short block:
 
 ```
 **[Bug]** 🔴 <problem>. <fix>.
-**[Spec AC2]** ❌ <what the AC asked for, and what the code does instead>.
+**[Spec]** ❌ ไม่ตรงกับ requirement ในการ์ด: <what was asked> แต่ code <what it does instead>.
 **[Standards]** 🔵 <rule or smell>. <fix>.
 ```
+
+The reader of the PR never sees the AC list or the spec file, so a posted comment must
+not name an AC ID (`AC2`), the words "acceptance criteria", or the spec's "Out of scope"
+list. Spec findings from Step 5 come with AC IDs, so rewrite each one before it becomes a
+comment; do not only change the label. Word it by where the requirement came from (the
+`source` on its AC line):
+
+- From the card: "ไม่ตรงกับ requirement ในการ์ด", and name the place if it helps (the
+  description, subtask `<ID>`, or a comment).
+- From grilling: "ไม่ตรงกับ requirement ที่ตกลงกัน". Do not claim the card says
+  something it does not.
+- Scope creep: "การ์ดไม่ได้ขอส่วนนี้", not "out of scope per spec".
 
 GitHub accepts an inline comment only on a line that is part of the PR diff. Check each
 one against `gh pr diff <number> --repo <owner>/<repo>` (GitHub's own diff, not the local
@@ -270,12 +285,24 @@ differ, stop and tell the user — the comments would land on the wrong lines.
 
 ### Build the review body
 
-Keep the body short, since the detail lives in the inline comments:
+Keep the body short, since the detail lives in the inline comments. Follow the same
+no-AC rule as the inline comments:
 
 1. A link to the card: `[<customTaskId>](<task url>)`.
-2. The acceptance criteria table from Step 7, section 1.
+2. A verdict: the work meets the card's requirement, or it does not. If it does not, a
+   short list of gaps, each written as "asked for X, the code does Y". Requirements that
+   are `⚠️ unclear` go here too, as "could not confirm X".
 3. "Findings outside the diff", if there are any.
-4. The one-line summary from Step 7, section 4.
+4. One line: the worst issue in each section. Do not count ACs.
+
+Before posting, check the payload file (see below) for AC leftovers:
+
+```bash
+grep -niE '\bAC[0-9]+\b|acceptance criteri' <payload file>
+```
+
+Any hit stops the post. A comment or the body still points at the AC list: rewrite that
+part, show the user what changed, and run the check again.
 
 ### Show the draft, then post
 

@@ -33,7 +33,8 @@ A PR is enough. The skill finds the ClickUp card from the PR body, the branch na
 7. Report in chat.
 8. Post one PR review, with each finding as an inline comment on its line. Findings on
    lines outside the diff go in the review body. Nothing is posted until you approve the
-   draft.
+   draft. The acceptance criteria stay private: the review never names an AC ID and says
+   only that the code does not match the card's requirement.
 
 ## Requirements
 
